@@ -24,11 +24,11 @@ wget  -r -nd -nc -c -A xml.gz $UPDATE_URL 2>/dev/stdout
 cd / 
 
 # 削除されたPMIDのリスト作成
-ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P3 -n1 -Ifile ruby pubmed_delete_citation.rb file delete_pmids.txt
+ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P10 -n1 -Ifile ruby pubmed_delete_citation.rb file delete_pmids.txt
 
 
 # 変換の実行
-ls -d $WORK/**/pubmed*.xml.gz | xargs -P3 -n1 -Ifile ruby /pubmed_converter.rb file delete_pmids.txt 
+ls -d $WORK/**/pubmed*.xml.gz | xargs -P10 -n1 -Ifile ruby /pubmed_converter.rb file delete_pmids.txt 
 
 chmod -R 777 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 777 $(ls -d $DATA/pubmed*.ttl)
 

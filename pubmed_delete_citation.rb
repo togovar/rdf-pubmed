@@ -2,6 +2,7 @@
 
 require 'zlib'
 require 'rexml/document'
+require 'nokogiri'
 
 input = ARGV[0]
 output = ARGV[1]
@@ -9,8 +10,8 @@ pmid_list = []
 
 # 削除対象のPMIDを取得
 Zlib::GzipReader.open(input){|gz|
-  docx = REXML::Document.new(gz.read)
-  docx.elements.each('/PubmedArticleSet/DeleteCitation/PMID'){|elm|
+  docx = Nokogiri::XML(gz.read)
+  docx.xpath('/PubmedArticleSet/DeleteCitation/PMID').each{|elm|
     pmid_list.push(elm.text)    
   } 
 }

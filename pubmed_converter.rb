@@ -1,8 +1,9 @@
 
 require 'zlib'
-require 'rexml/document'
 require 'erb'
-require 'date'
+require 'benchmark'
+require 'objspace'
+require 'nokogiri'
 
 # プロパティ値
 ab_path = "MedlineCitation/Article/Abstract/AbstractText"
@@ -68,10 +69,9 @@ prefix = [
 
 # 2桁の0埋め
 def zero_padding num
-  num.to_s.length==2 ? num : ("0"<<num)
-end
+  num.to_s.length==2 ? num : ("0"<<num) 
+end #{
 
-# 要素の存在チェック
 def check_element(element)
   if (element && element.text) then
     true
@@ -94,114 +94,123 @@ File.foreach(delete_pmids_file){ |line|
 File.open(output, 'a'){|f|
   prefix.each{ |p| f.puts("@prefix "+ p )}
 }
-
+erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
 # ファイルごとに出力を行う
-Zlib::GzipReader.open(input){|gz|
-  docx = REXML::Document.new(gz.read)
-  docx.elements.each('/PubmedArticleSet/PubmedArticle') do |doc|
-    
-    pmid = doc.elements[pmid_path].text
-    
-    # 削除対象エントリーの場合は作成しない
-    next if delete_pmids.include?(pmid)
 
-    ab = check_element(doc.elements[ab_path]) ? doc.elements[ab_path].text : ""
-    ci = check_element(doc.elements[ci_path]) ? doc.elements[ci_path].text : ""
-    aid_pii = check_element(doc.elements[aid_pii_path]) ? doc.elements[aid_pii_path].text : ""
-    aid_doi = check_element(doc.elements[aid_doi_path]) ? doc.elements[aid_doi_path].text : ""
+ir_info = Struct.new(:index, :init, :lname, :fname, :irad)
+
+gz = Zlib::GzipReader.new(File.open(input))
+#docx = REXML::Document.new(gz.read)
+  
+docx = Nokogiri::XML(gz.read)
+
+docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     
-    au_index = 0
-    au_info = Struct.new(:index, :init, :lname, :fname, :ad, :auid)
-    au_list = Array.new()
-    doc.elements.each(au_path) do |elm|
-      
-      next if elm.elements["CollectiveName"]
+  pmid = doc.xpath(pmid_path).text
+    
+  # 削除対象エントリーの場合は作成しない
+  next if delete_pmids.include?(pmid)
+
+  ab = check_element(doc.xpath(ab_path)) ? doc.xpath(ab_path).text : ""
+  ci = check_element(doc.xpath(ci_path)) ? doc.xpath(ci_path).text : ""
+  aid_pii = check_element(doc.xpath(aid_pii_path)) ? doc.xpath(aid_pii_path).text : ""
+  aid_doi = check_element(doc.xpath(aid_doi_path)) ? doc.xpath(aid_doi_path).text : ""
+    
+  au_index = 0
+  au_list = []
+  au_info = Struct.new(:index, :init, :lname, :fname, :ad, :auid)  
+  doc.xpath(au_path).each do |elm|
+    
+    next if !elm.xpath("CollectiveName").empty?
+    
      
-      au_list[au_index] = au_info.new()
-      au_list[au_index].index = au_index + 1
-      au_list[au_index].init = check_element(elm.elements["Initials"]) ? elm.elements["Initials"].text : ""
-      au_list[au_index].fname = check_element(elm.elements["ForeName"]) ? elm.elements["ForeName"].text : ""
-       au_list[au_index].lname = check_element(elm.elements["LastName"]) ? elm.elements["LastName"].text : ""
-      au_list[au_index].ad = check_element(elm.elements["AffiliationInfo/Affiliation"]) ? elm.elements["AffiliationInfo/Affiliation"].text : ""
-      au_list[au_index].auid = check_element(elm.elements["AffiliationInfo/Identifer"]) ? elm.elements["AffiliationInfo/Identifer"].text : ""
-      au_index +=1
-    end
-    
-    cn = check_element(doc.elements[cn_path]) ? doc.elements[cn_path].text : ""
-    crdt = check_element(doc.elements[crdt_year_path]) ? doc.elements[crdt_year_path].text : ""
-    crdt <<= check_element(doc.elements[crdt_month_path]) ? "-#{doc.elements[crdt_month_path].text}" : ""
-    crdt <<= check_element(doc.elements[crdt_day_path]) ? "-#{doc.elements[crdt_day_path].text}" : ""
-    crdt <<= check_element(doc.elements[crdt_hour_path]) ? "T#{zero_padding(doc.elements[crdt_hour_path].text)}" : ""
-    crdt <<= check_element(doc.elements[crdt_minute_path]) ? ":#{zero_padding(doc.elements[crdt_minute_path].text)}" : ""
-    lr = check_element(doc.elements[lr_year_path]) ? doc.elements[lr_year_path].text : ""
-    lr <<= check_element(doc.elements[lr_month_path]) ? "-#{doc.elements[lr_month_path].text}" : ""
-    lr <<= check_element(doc.elements[lr_day_path]) ? "-#{doc.elements[lr_day_path].text}" : ""
-    edat = check_element(doc.elements[edat_year_path]) ? doc.elements[edat_year_path].text : ""
-    edat <<= check_element(doc.elements[edat_month_path]) ? "-#{doc.elements[edat_month_path].text}" : ""
-    edat <<= check_element(doc.elements[edat_day_path]) ? "-#{doc.elements[edat_day_path].text}" : ""
-    edat <<= check_element(doc.elements[edat_hour_path]) ? "T#{zero_padding(doc.elements[edat_hour_path].text)}" : ""
-    edat <<= check_element(doc.elements[edat_minute_path]) ? ":#{zero_padding(doc.elements[edat_minute_path].text)}" : ""
-    
-    ir_index = 0
-    ir_info = Struct.new(:index, :init, :lname, :fname, :irad)
-    ir_list = Array.new()
-    doc.elements.each(ir_path) do |elm|
-      ir_list[ir_index] = ir_info.new()
-      ir_list[ir_index].index = ir_index + 1
-      ir_list[ir_index].init = check_element(elm.elements["Initials"]) ? elm.elements["Initials"].text : ""
-      ir_list[ir_index].fname = check_element(elm.elements["ForeName"]) ? elm.elements["ForeName"].text : ""
-      ir_list[ir_index].lname = check_element(elm.elements["LastName"]) ? elm.elements["LastName"].text : ""
-      ir_list[ir_index].irad = check_element(elm.elements["AffiliationInfo/Affiliation"]) ? elm.elements["AffiliationInfo/Affiliation"].text : ""
-      ir_index +=1
-    end
-    
-    is_p = check_element(doc.elements[is_p_path]) ? doc.elements[is_p_path].text : ""
-    is_e = check_element(doc.elements[is_e_path]) ? doc.elements[is_e_path].text : ""
-    is_l = check_element(doc.elements[is_l_path]) ? doc.elements[is_l_path].text : ""
-    ip = check_element(doc.elements[ip_path]) ? doc.elements[ip_path].text : ""
-    ta = check_element(doc.elements[ta_path]) ? doc.elements[ta_path].text : ""
-    jt = check_element(doc.elements[jt_path]) ? doc.elements[jt_path].text : ""
-    la = check_element(doc.elements[la_path]) ? doc.elements[la_path].text : ""
-    
-    jid = check_element(doc.elements[jid_path]) ? doc.elements[jid_path].text : "" 
-    oci = check_element(doc.elements[oci_path]) ? doc.elements[oci_path].text : ""
-    own = check_element(doc.elements[own_path]) ? doc.elements[own_path].attributes['Owner'] : ""
-    
-    pg, pg_st, pg_en, pg_so = "", "", "", "" 
-    if check_element(doc.elements[pg_path])then
-      if doc.elements[pg_path].text.include?(" ") then
-        pg = doc.elements[pg_path].text
-        pg_so = doc.elements[pg_path].text
-      elsif doc.elements[pg_path].text.include?("-")
-        pg_st = doc.elements[pg_path].text.split("-")[0]
-        pg_en = doc.elements[pg_path].text.split("-")[1]
-        pg_so = doc.elements[pg_path].text
-      else
-        pg = doc.elements[pg_path].text
-        pg_so = doc.elements[pg_path].text
-      end      
-    end
-    
-    pl = check_element(doc.elements[pl_path]) ? doc.elements[pl_path].text : ""
-       
-    rn, nm = [], []
-    doc.elements.each(rn_list_path) do |elm|
-      rn.push(elm.elements['RegistryNumber'].text) if check_element(elm.elements['RegistryNumber'])
-      nm.push(elm.elements['NameOfSubstance'].text) if check_element(elm.elements['NameOfSubstance'])
-    end
-    
-    ti = check_element(doc.elements[ti_path]) ? doc.elements[ti_path].text : ""
-    vi = check_element(doc.elements[vi_path]) ? doc.elements[vi_path].text : ""
-    dp = check_element(doc.elements[dp_year_path]) ? doc.elements[dp_year_path].text : ""
-    dp <<= check_element(doc.elements[dp_month_path]) ? "-#{zero_padding(doc.elements[dp_month_path].text)}" : ""
-    dp <<= check_element(doc.elements[dp_day_path]) ? "-#{zero_padding(doc.elements[dp_day_path].text)}" : ""
-    so = "#{ta}. #{dp};#{vi}(#{ip}):#{pg_so}."
-   
-    # 出力
-    erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
-    File.open(output, 'a'){|f|
-      f.puts erb.result(binding).gsub(/\n(\s| )*\n/, "\n")
-    }
+    au_list[au_index] = au_info.new()
+    au_list[au_index].index = au_index + 1
+    au_list[au_index].init = check_element(elm.xpath("Initials")) ? elm.xpath("Initials").text : ""
+    au_list[au_index].fname = check_element(elm.xpath("ForeName")) ? elm.xpath("ForeName").text : ""
+    au_list[au_index].lname = check_element(elm.xpath("LastName")) ? elm.xpath("LastName").text : ""
+    au_list[au_index].ad = check_element(elm.xpath("AffiliationInfo/Affiliation")) ? elm.xpath("AffiliationInfo/Affiliation").text : ""
+    au_list[au_index].auid = check_element(elm.xpath("AffiliationInfo/Identifer")) ? elm.xpath("AffiliationInfo/Identifer").text : ""
+    au_index +=1
   end
-}
+    
+  cn = check_element(doc.xpath(cn_path)) ? doc.xpath(cn_path).text : ""
+  crdt = check_element(doc.xpath(crdt_year_path)) ? doc.xpath(crdt_year_path).text : ""
+  crdt <<= check_element(doc.xpath(crdt_month_path)) ? "-#{doc.xpath(crdt_month_path).text}" : ""
+  crdt <<= check_element(doc.xpath(crdt_day_path)) ? "-#{doc.xpath(crdt_day_path).text}" : ""
+  crdt <<= check_element(doc.xpath(crdt_hour_path)) ? "T#{zero_padding(doc.xpath(crdt_hour_path).text)}" : ""
+  crdt <<= check_element(doc.xpath(crdt_minute_path)) ? ":#{zero_padding(doc.xpath(crdt_minute_path).text)}" : ""
+  lr = check_element(doc.xpath(lr_year_path)) ? doc.xpath(lr_year_path).text : ""
+  lr <<= check_element(doc.xpath(lr_month_path)) ? "-#{doc.xpath(lr_month_path).text}" : ""
+  lr <<= check_element(doc.xpath(lr_day_path)) ? "-#{doc.xpath(lr_day_path).text}" : ""
+  edat = check_element(doc.xpath(edat_year_path)) ? doc.xpath(edat_year_path).text : ""
+  edat <<= check_element(doc.xpath(edat_month_path)) ? "-#{doc.xpath(edat_month_path).text}" : ""
+  edat <<= check_element(doc.xpath(edat_day_path)) ? "-#{doc.xpath(edat_day_path).text}" : ""
+  edat <<= check_element(doc.xpath(edat_hour_path)) ? "T#{zero_padding(doc.xpath(edat_hour_path).text)}" : ""
+  edat <<= check_element(doc.xpath(edat_minute_path)) ? ":#{zero_padding(doc.xpath(edat_minute_path).text)}" : ""
+    
+  ir_index = 0
+  ir_list = []
+  doc.xpath(ir_path).each do |elm|
+    ir_list[ir_index] = ir_info.new()
+    ir_list[ir_index].index = ir_index + 1
+    ir_list[ir_index].init = check_element(elm.xpath("Initials")) ? elm.xpath("Initials").text : ""
+    ir_list[ir_index].fname = check_element(elm.xpath("ForeName")) ? elm.xpath("ForeName").text : ""
+    ir_list[ir_index].lname = check_element(elm.xpath("LastName")) ? elm.xpath("LastName").text : ""
+    ir_list[ir_index].irad = check_element(elm.xpath("AffiliationInfo/Affiliation")) ? elm.xpath("AffiliationInfo/Affiliation").text : ""
+    ir_index +=1
+  end
+    
+  is_p = check_element(doc.xpath(is_p_path)) ? doc.xpath(is_p_path).text : ""
+  is_e = check_element(doc.xpath(is_e_path)) ? doc.xpath(is_e_path).text : ""
+  is_l = check_element(doc.xpath(is_l_path)) ? doc.xpath(is_l_path).text : ""
+  ip = check_element(doc.xpath(ip_path)) ? doc.xpath(ip_path).text : ""
+  ta = check_element(doc.xpath(ta_path)) ? doc.xpath(ta_path).text : ""
+  jt = check_element(doc.xpath(jt_path)) ? doc.xpath(jt_path).text : ""
+  la = check_element(doc.xpath(la_path)) ? doc.xpath(la_path).text : ""
+    
+  jid = check_element(doc.xpath(jid_path)) ? doc.xpath(jid_path).text : "" 
+  oci = check_element(doc.xpath(oci_path)) ? doc.xpath(oci_path).text : ""
+  own = check_element(doc.xpath(own_path)) ? doc.xpath(own_path).attribute('Owner').text : ""
+    
+  pg, pg_st, pg_en, pg_so = "", "", "", "" 
+  if check_element(doc.xpath(pg_path))then
+    if doc.xpath(pg_path).text.include?(" ") then
+      pg = doc.xpath(pg_path).text
+      pg_so = doc.xpath(pg_path).text
+    elsif doc.xpath(pg_path).text.include?("-")
+      pg_st = doc.xpath(pg_path).text.split("-")[0]
+      pg_en = doc.xpath(pg_path).text.split("-")[1]
+      pg_so = doc.xpath(pg_path).text
+    else
+      pg = doc.xpath(pg_path).text
+      pg_so = doc.xpath(pg_path).text
+    end      
+  end
+    
+  pl = check_element(doc.xpath(pl_path)) ? doc.xpath(pl_path).text : ""
+     
+  rn, nm = [], []
+  doc.xpath(rn_list_path).each do |elm|
+    rn.push(elm.xpath('RegistryNumber').text) if check_element(elm.xpath('RegistryNumber'))
+    nm.push(elm.xpath('NameOfSubstance').text) if check_element(elm.xpath('NameOfSubstance'))
+  end
+   
+  ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
+  vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""
+  dp = check_element(doc.xpath(dp_year_path)) ? doc.xpath(dp_year_path).text : ""
+  dp <<= check_element(doc.xpath(dp_month_path)) ? "-#{zero_padding(doc.xpath(dp_month_path).text)}" : ""
+  dp <<= check_element(doc.xpath(dp_day_path)) ? "-#{zero_padding(doc.xpath(dp_day_path).text)}" : ""
+  so = "#{ta}. #{dp};#{vi}(#{ip}):#{pg_so}."
+  
+  # 出力
+  File.open(output, 'a') do |f|
+    f.puts erb.result(binding).gsub(/\n(\s| )*\n/, "\n")
+  end
+end
+
+
+ 
+
+
 

@@ -22,6 +22,11 @@ lr_path = "MedlineCitation/DateRevised"
 lr_year_path = "#{lr_path}/Year"
 lr_month_path = "#{lr_path}/Month"
 lr_day_path = "#{lr_path}/Day"
+dp_path = "MedlineCitation/Article/Journal/JournalIssue/PubDate"
+dp_year_path = "#{dp_path}/Year"
+dp_month_path = "#{dp_path}/Month"
+dp_day_path = "#{dp_path}/Day"
+dp_medline_path = "#{dp_path}/MedlineDate"
 edat_path = "PubmedData/History/PubMedPubDate[@PubStatus='entrez']"
 edat_year_path = "#{edat_path}/Year"
 edat_month_path = "#{edat_path}/Month"
@@ -46,10 +51,6 @@ pmid_path = "MedlineCitation/PMID"
 rn_list_path = "MedlineCitation/ChemicalList/Chemical"
 ti_path = "MedlineCitation/Article/ArticleTitle"
 vi_path = "MedlineCitation/Article/Journal/JournalIssue/Volume"
-dp_path = "MedlineCitation/Article/Journal/JournalIssue/PubDate"
-dp_year_path = "#{dp_path}/Year"
-dp_month_path = "#{dp_path}/Month"
-dp_day_path = "#{dp_path}/Day"
 
 prefix = [ 
   ": <http://purl.jp/bio/10/pubmed-ontology/> .",
@@ -61,7 +62,7 @@ prefix = [
   "rdfs: <http://www.w3.org/2000/01/rdf-schema#> .",
   "foaf: <http://xmlns.com/foaf/0.1/> .",
   "bibo: <http://purl.org/ontology/bibo/> .",
-  "pubmed: <http://rdf.ncbi.nlm.gov/pubmed/> .",
+  "pubmed: <http://rdf.ncbi.nlm.nih.gov/pubmed/> .",
   "prism: <http://prismstandard.org/namespeces/1.2/basic/> .",
   "olo: <http://purl.org/ontology/olo/core#> .",
   "pav: <http://purl.org/pav/>."
@@ -72,6 +73,7 @@ def zero_padding num
   num.to_s.length==2 ? num : ("0"<<num) 
 end #{
 
+# XPathの存在チェック
 def check_element(element)
   if (element && element.text) then
     true
@@ -90,11 +92,17 @@ File.foreach(delete_pmids_file){ |line|
   delete_pmids.push(line.chomp)
 }
 
+# 出力先ファイルが存在する場合出力しない
+if File.exist?(output) then
+  exit
+end
+
 # prefixの記述
 File.open(output, 'a'){|f|
   prefix.each{ |p| f.puts("@prefix "+ p )}
 }
 erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
+
 # ファイルごとに出力を行う
 
 ir_info = Struct.new(:index, :init, :lname, :fname, :irad)
@@ -122,8 +130,7 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   doc.xpath(au_path).each do |elm|
     
     next if !elm.xpath("CollectiveName").empty?
-    
-     
+         
     au_list[au_index] = au_info.new()
     au_list[au_index].index = au_index + 1
     au_list[au_index].init = check_element(elm.xpath("Initials")) ? elm.xpath("Initials").text : ""
@@ -143,6 +150,14 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   lr = check_element(doc.xpath(lr_year_path)) ? doc.xpath(lr_year_path).text : ""
   lr <<= check_element(doc.xpath(lr_month_path)) ? "-#{doc.xpath(lr_month_path).text}" : ""
   lr <<= check_element(doc.xpath(lr_day_path)) ? "-#{doc.xpath(lr_day_path).text}" : ""
+  
+  dp = check_element(doc.xpath(dp_medline_path)) ? doc.xpath(dp_medline_path).text : ""
+  if (dp.empty?) then
+    dp = check_element(doc.xpath(dp_year_path)) ? doc.xpath(dp_year_path).text : ""
+    dp <<= check_element(doc.xpath(dp_month_path)) ? " #{doc.xpath(dp_month_path).text}" : ""
+    dp <<= check_element(doc.xpath(dp_day_path)) ? " #{doc.xpath(dp_day_path).text}" : ""
+  end
+
   edat = check_element(doc.xpath(edat_year_path)) ? doc.xpath(edat_year_path).text : ""
   edat <<= check_element(doc.xpath(edat_month_path)) ? "-#{doc.xpath(edat_month_path).text}" : ""
   edat <<= check_element(doc.xpath(edat_day_path)) ? "-#{doc.xpath(edat_day_path).text}" : ""
@@ -198,9 +213,6 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
    
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
   vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""
-  dp = check_element(doc.xpath(dp_year_path)) ? doc.xpath(dp_year_path).text : ""
-  dp <<= check_element(doc.xpath(dp_month_path)) ? "-#{zero_padding(doc.xpath(dp_month_path).text)}" : ""
-  dp <<= check_element(doc.xpath(dp_day_path)) ? "-#{zero_padding(doc.xpath(dp_day_path).text)}" : ""
   so = "#{ta}. #{dp};#{vi}(#{ip}):#{pg_so}."
   
   # 出力
@@ -208,9 +220,4 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     f.puts erb.result(binding).gsub(/\n(\s| )*\n/, "\n")
   end
 end
-
-
- 
-
-
 

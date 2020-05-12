@@ -3,7 +3,7 @@ def c(str)
   if str.nil?
     ""
   else
-    str.chomp.gsub("\n", ' ').gsub("\"", '\"')
+    str.chomp.gsub(/\n/, ' ').gsub(/\"/, ' ').gsub(/\\/, '')
   end
 end
 
@@ -22,8 +22,8 @@ pubmed:<%= pmid %>
   dcterms:identifier "<%= pmid %>" ;
 <% if check(ab) %>  bibo:abstract "<%=c ab %>";<% end %>
 <% if check(ci) %>  dcterms:rights "<%=c ci %>";<% end %>
-<% if check(aid_pii) %>  fabio:hasPII "<%=aid_pii %>";<% end %>
-<% if check(aid_doi) %>  prism:doi "<%=aid_doi%>";<% end %>
+<% if check(aid_pii) %>  fabio:hasPII "<%=c aid_pii %>";<% end %>
+<% if check(aid_doi) %>  prism:doi "<%=c aid_doi%>";<% end %>
 <% if au_list.size != 0 %>  dcterms:creator [
     a olo:OrderedList ;
     olo:length <%=au_list.size%> ;
@@ -31,7 +31,7 @@ pubmed:<%= pmid %>
       olo:index <%=au_info.index%>;
       olo:item [
         a foaf:Person;
-        foaf:name "<%=au_info.lname%> <%=au_info.init%>";
+        foaf:name "<%=c au_info.lname%> <%=c au_info.init%>";
         foaf:firstName "<%=c au_info.fname%>";
         foaf:LastName "<%=c au_info.lname%>"<% if !au_info.ad.empty? %>;
         org:memberOf "<%=c au_info.ad%>"<% end %><% if !au_info.auid.empty? %>;
@@ -39,10 +39,11 @@ pubmed:<%= pmid %>
       ]
 <%if index == au_list.size - 1  %>    ]<% else %>    ],<% end %><% end %>
   ];<% end %>
-<% if check(cn) %>  dcterms:creator "<%=cn %>";<% end %>
-<% if check(crdt) %>  dcterms:created "<%=crdt %>";<% end %>
-<% if check(lr) %>  fabio:dateLastUpdated "<%=lr %>";<% end %>
-<% if check(edat) %>  dcterms:created "<%=edat %>";<% end %>
+<% if check(cn) %>  dcterms:creator "<%=c cn %>";<% end %>
+<% if check(crdt) %>  dcterms:created "<%=c crdt %>";<% end %>
+<% if check(lr) %>  fabio:dateLastUpdated "<%=c lr %>";<% end %>
+<% if check(dp) %>  dcterms:issued "<%=c dp %>";<% end %>
+<% if check(edat) %>  dcterms:created "<%=c edat %>";<% end %>
 <% if check(ir_list) %>
   dcterms:contributor[
      a olo:OrderedList ;
@@ -57,27 +58,26 @@ pubmed:<%= pmid %>
          org:memberOf "<%=c ir_info.irad%>"<% end %>
        ] 
 <%if index == ir_list.size - 1  %>    ]<% else %>    ],<% end %><% end %>
-  ].
-<%end%>
-<% if check(is_p) %>  prism:ISSN "<%=is_p %>";<% end %>
-<% if check(is_e) %>  prism:eISSN "<%=is_e %>";<% end %>
-<% if check(is_l) %>  fabio:hasIssnL "<%=is_l %>";<% end %>
-<% if check(ip) %>  bibo:issue "<%=ip %>";<% end %>
-<% if check(ta) %>  fabio:hasNLMJournalTitleAbbreviation "<%=ta %>";<% end %>
-<% if check(jt) %>  prism:publicationName "<%=jt %>";<% end %>
-<% if check(la) %>  dcterms:language "<%=la %>";<% end %>
-<% if check(jid) %>  fabio:hasNationalLibraryOfMedicineJournalId "<%=jid %>";<% end %>
-<% if check(oci) %>  dcterms:rightsHolder "<%=oci %>";<% end %>
-<% if check(own) %>  pav:derivedFrom "<%=own %>";<% end %>
-<% if check(pg) %>  pg "<%=pg %>";<% end %>
-<% if check(pg_st) %>  prism:startingPage "<%=pg_st %>";<% end %>
-<% if check(pg_en) %>  prism:endingPage "<%=pg_en %>";<% end %>
-<% if check(pl) %>  fabio:hasPlaceOfPublication "<%=pl %>";<% end %>
+  ];<%end%>
+<% if check(is_p) %>  prism:ISSN "<%=c is_p %>";<% end %>
+<% if check(is_e) %>  prism:eISSN "<%=c is_e %>";<% end %>
+<% if check(is_l) %>  fabio:hasIssnL "<%=c is_l %>";<% end %>
+<% if check(ip) %>  bibo:issue "<%=c ip %>";<% end %>
+<% if check(ta) %>  fabio:hasNLMJournalTitleAbbreviation "<%=c ta %>";<% end %>
+<% if check(jt) %>  prism:publicationName "<%=c jt %>";<% end %>
+<% if check(la) %>  dcterms:language "<%=c la %>";<% end %>
+<% if check(jid) %>  fabio:hasNationalLibraryOfMedicineJournalId "<%=c jid %>";<% end %>
+<% if check(oci) %>  dcterms:rightsHolder "<%=c oci %>";<% end %>
+<% if check(own) %>  pav:derivedFrom "<%=c own %>";<% end %>
+<% if check(pg) %>  pg "<%=c pg %>";<% end %>
+<% if check(pg_st) %>  prism:startingPage "<%=c pg_st %>";<% end %>
+<% if check(pg_en) %>  prism:endingPage "<%=c pg_en %>";<% end %>
+<% if check(pl) %>  fabio:hasPlaceOfPublication "<%=c pl %>";<% end %>
 <% rn.each do |elm| %>
-  rdfs:seeAlso "<%= elm %>";
+  rdfs:seeAlso "<%=c elm %>";
 <%end%>
 <% nm.each do |elm| %>
-  rdfs:seeAlso "<%= elm %>";
+  rdfs:seeAlso "<%=c elm %>";
 <%end%>
 <% if check(so) %>  dcterms:source "<%=c so %>";<% end %>
 <% if check(ti) %>  dcterms:title "<%=c ti %>";<% end %>

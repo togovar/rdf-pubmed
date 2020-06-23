@@ -1,0 +1,60 @@
+#!/bin/bash
+
+##
+# MEDLINEのダウンロードとRDF変換の実行 
+##
+
+# プロパティ
+WORK=/work
+DATA=/data
+BASE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline
+UPDATE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles
+FORCE_CONVERT=0
+
+# オプションの読み取り
+while getopts f OPT
+do
+  case $OPT in
+    f)  FORCE_CONVERT=1
+        ;;
+  esac
+done
+shift  $(($OPTIND - 1))
+
+
+# ディレクトリの作成
+mkdir -p $WORK/updatefiles
+
+# updatefilesのダウンロード
+cd $WORK/updatefiles
+
+wget  -r -nd -nc -c -A xml.gz $UPDATE_URL 2>/wget.log
+cat /wget.log > /dev/stdout
+
+num_of_newfiles=`egrep "' saved \[[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
+
+# アーカイブファイルに更新がなく、fオプションが指定されていない場合はコンバートを実行しない
+if [ $num_of_newfiles -eq 0 ] && [ $FORCE_CONVERT -eq 0 ]; then
+  echo
+  echo "No RDF files were generated because no new files were found at the download site."
+  exit 0
+fi
+
+cd / 
+
+# baselineの重複したPMID一覧存在しない場合は変換しない
+if [ -f $WORK/dup_pmids.tsv ]; then
+  # 削除されたPMIDのリスト作成
+  ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P5 -n1 -IFILE ruby pubmed_delete_citation.rb FILE skip_pmids.txt
+
+  # 変換の実行(updatefile)
+  ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
+  # 変換の実行(baseline 5並列)
+  ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P5 -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmids.tsv
+
+  chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl)
+else
+  echo "Run init_pubmed" 
+  exit 1 
+fi
+

@@ -1,4 +1,5 @@
 
+require 'set'
 require 'zlib'
 require 'erb'
 require 'benchmark'
@@ -112,7 +113,7 @@ def month_to_num(month)
   when "Dec"
     return "12"
   else
-    retrun month
+    return month
   end
 end
 
@@ -124,9 +125,11 @@ output = "/data/#{File.basename(input, '.xml.gz')}.ttl"
 
 # 出力対象外のPMIDのリストを取得
 skip_pmids = []
+skip_tmp_pmids = []
 File.foreach(skip_pmids_file){ |line|
   skip_pmids.push(line.chomp)
 }
+skip_pmids = skip_pmids.to_set
 
 # 出力先ファイルが存在する場合出力しない
 #if File.exist?(output) then
@@ -143,16 +146,15 @@ File.open(output, 'a'){|f|
 gz = Zlib::GzipReader.new(File.open(input))  
 docx = Nokogiri::XML(gz.read)
 erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
-created_pmid_list = []
 # 各値の取得
 docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     
   pmid = doc.xpath(pmid_path).text
     
-  # 作成対象外のエントリーの場合は作成しない
-  next if skip_pmids.include?(pmid)
+  # 作成対象外またはこのファイルで作成したエントリーの場合は作成しない
+  next if (skip_pmids.include?(pmid) or skip_tmp_pmids.include?(pmid))
   
-  created_pmid_list.push(pmid)
+  skip_tmp_pmids.push(pmid)
   ab = check_element(doc.xpath(ab_path)) ? doc.xpath(ab_path).text : ""
   ci = check_element(doc.xpath(ci_path)) ? doc.xpath(ci_path).text : ""
   aid_pii = check_element(doc.xpath(aid_pii_path)) ? doc.xpath(aid_pii_path).text : ""
@@ -261,8 +263,8 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
 end
 
 # ファイル作成したPMID一覧を出力
-File.open(output, 'a'){|file|
-  pmid_list.each{|created_pmid|
+File.open(skip_pmids_file, 'a'){|file|
+  skip_tmp_pmids.each{|created_pmid|
     file.puts created_pmid
   }
 }

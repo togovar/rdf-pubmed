@@ -42,7 +42,8 @@ pubmed:<%= pmid %>
 <% if check(cn) %>  dcterms:creator "<%=c cn %>";<% end %>
 <% if check(crdt) %>  dcterms:created "<%=c crdt %>";<% end %>
 <% if check(lr) %>  fabio:dateLastUpdated "<%=c lr %>";<% end %>
-<% if check(dp) %>  dcterms:issued "<%=c dp %>";<% end %>
+<% if check(dp) %>  dcterms:issued "<%=c dp %>"^^xsd:date;<% end %>
+<% if check(dp_medline) %>  medline:dp "<%=c dp_medline %>";<% end %>
 <% if check(edat) %>  dcterms:created "<%=c edat %>";<% end %>
 <% if check(ir_list) %>
   dcterms:contributor[

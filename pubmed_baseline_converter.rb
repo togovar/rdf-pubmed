@@ -1,4 +1,6 @@
 
+require 'set'
+require 'csv'
 require 'zlib'
 require 'erb'
 require 'benchmark'
@@ -112,13 +114,14 @@ def month_to_num(month)
   when "Dec"
     return "12"
   else
-    retrun month
+    return month
   end
 end
 
-# 第一引数:入力ファイル 第二引数:出力しないPMIDのリストファイル
+# 第一引数:入力ファイル 第二引数:出力しないPMIDのリストファイル 第三引数:重複したPMIDのTSVファイル
 input = ARGV[0]
 skip_pmids_file = ARGV[1] 
+dup_pmids_file = ARGV[2]
 
 output = "/data/#{File.basename(input, '.xml.gz')}.ttl"
 
@@ -127,6 +130,11 @@ skip_pmids = []
 File.foreach(skip_pmids_file){ |line|
   skip_pmids.push(line.chomp)
 }
+skip_pmids = skip_pmids.to_set
+
+# 重複したPMIDと更新日のリストを取得
+dup_pmids_info = CSV.read(dup_pmids_file, col_sep: "\t")
+dup_pmids = dup_pmids_info.transpose[0]
 
 # 出力先ファイルが存在する場合出力しない
 #if File.exist?(output) then
@@ -143,16 +151,18 @@ File.open(output, 'a'){|f|
 gz = Zlib::GzipReader.new(File.open(input))  
 docx = Nokogiri::XML(gz.read)
 erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
-created_pmid_list = []
+
 # 各値の取得
 docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     
   pmid = doc.xpath(pmid_path).text
-    
+  lr_check = doc.xpath(lr_year_path).text + doc.xpath(lr_month_path).text + doc.xpath(lr_day_path).text  
   # 作成対象外のエントリーの場合は作成しない
   next if skip_pmids.include?(pmid)
+  if dup_pmids.include?(pmid) then
+    next if !dup_pmids_info[dup_pmids.index(pmid)][1].eql?(lr_check)
+  end
   
-  created_pmid_list.push(pmid)
   ab = check_element(doc.xpath(ab_path)) ? doc.xpath(ab_path).text : ""
   ci = check_element(doc.xpath(ci_path)) ? doc.xpath(ci_path).text : ""
   aid_pii = check_element(doc.xpath(aid_pii_path)) ? doc.xpath(aid_pii_path).text : ""
@@ -260,9 +270,4 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   end
 end
 
-# ファイル作成したPMID一覧を出力
-File.open(output, 'a'){|file|
-  pmid_list.each{|created_pmid|
-    file.puts created_pmid
-  }
-}
+

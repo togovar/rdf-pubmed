@@ -10,36 +10,31 @@ DATA=/data
 BASE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline
 UPDATE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles
 FORCE_CONVERT=0
-INITIAL = 0
 # オプションの読み取り
 while getopts fi OPT
 do
   case $OPT in
     f)  FORCE_CONVERT=1
         ;;
-    i)  INITIAL = 1
-        ;;
   esac
 done
 shift  $(($OPTIND - 1))
 
-# iオプションが指定されている場合は実行する
-if [ $INITIAL -eq 1]; then 
-  # ディレクトリの作成
-  mkdir -p $WORK/baseline
+# ディレクトリの作成
+mkdir -p $WORK/baseline
 
-  # baselineのダウンロード
-  cd $WORK/baseline
-  wget  -r -nd -nc -c -A xml.gz $BASE_URL 2>/dev/stdout
+# baselineのダウンロード
+cd $WORK/baseline
+wget  -r -nd -nc -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+cat /baseline_wget.log
+baseline_num_of_newfiles = `egrep "' saved \[[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
   
-  # 出力ファイルが存在する場合は削除する
-  if [ -e  "/work/dup_pmid.tsv" ]; then
-    rm /work/dup_pmid.tsv
-  fi
+# baselineに更新がある場合、重複したPMID一覧を出力する
+if [ ! $baseline_num_of_newfiles -eq 0 ] ; then
+  test -e /work/dup_pmid.tsv && rm /work/dup_pmid.tsv
   # baseline内の重複したPMIDを抜きだし、最新の更新日の値とペアで出力する
-  ruby /pubmed_dup_check.rb  
+  ruby /pubmed_dup_check.rb
 fi
-
 
 # ディレクトリの作成
 mkdir -p $WORK/updatefiles

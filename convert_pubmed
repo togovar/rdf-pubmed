@@ -29,8 +29,8 @@ wget  -r -nd -nc -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
 cat /baseline_wget.log
 baseline_num_of_newfiles = `egrep "' saved \[[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
   
-# baselineに更新がある場合、重複したPMID一覧を出力する
-if [ ! $baseline_num_of_newfiles -eq 0 ] ; then
+# baselineに更新がある場合、または出力ファイルが存在しない場合に重複したPMID一覧を出力する
+if [ ! $baseline_num_of_newfiles -eq 0 ] && [ ! -e /work/dup_pmid.tsv ]; then
   test -e /work/dup_pmid.tsv && rm /work/dup_pmid.tsv
   # baseline内の重複したPMIDを抜きだし、最新の更新日の値とペアで出力する
   ruby /pubmed_dup_check.rb

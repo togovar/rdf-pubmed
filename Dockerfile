@@ -10,5 +10,5 @@ ADD ./dup_pmid.tsv /work
 RUN gem install nokogiri
 RUN chmod 777 /bin/init_pubmed /bin/convert_pubmed
 
-CMD convert_pubmed 
+ENTRYPOINT ["convert_pubmed"]
 

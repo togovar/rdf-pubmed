@@ -17,4 +17,5 @@ $ docker run --rm -v [WORK]:/work -v [DATA]:/data rdf-pubmed [OPTION]
 
 [OPTION]:  
 -f Convert local files when no new remote files are available.  
--i Run first and at the beginning of the year.
+-P Specifires the maximum number of processes that can be executed simulataneously
+

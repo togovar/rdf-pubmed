@@ -10,11 +10,15 @@ DATA=/data
 BASE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline
 UPDATE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles
 FORCE_CONVERT=0
+NUM_PARALLEL=1
+
 # オプションの読み取り
-while getopts fi OPT
+while getopts fP: OPT
 do
   case $OPT in
     f)  FORCE_CONVERT=1
+        ;;
+    P)  NUM_PARALLEL=$OPTARG
         ;;
   esac
 done
@@ -25,9 +29,15 @@ mkdir -p $WORK/baseline
 
 # baselineのダウンロード
 cd $WORK/baseline
-wget  -r -nd -nc -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Started wget baseline at $now"
+wget  -r -nd -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Finished wget baseline at $now"
+
 cat /baseline_wget.log
-baseline_num_of_newfiles = `egrep "' saved \[[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
+baseline_num_of_newfiles=`egrep "' saved \[[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
   
 # baselineに更新がある場合、または出力ファイルが存在しない場合に重複したPMID一覧を出力する
 if [ ! $baseline_num_of_newfiles -eq 0 ] && [ ! -e /work/dup_pmid.tsv ]; then
@@ -42,7 +52,12 @@ mkdir -p $WORK/updatefiles
 # updatefilesのダウンロード
 cd $WORK/updatefiles
 
-wget  -r -nd -nc -c -A xml.gz $UPDATE_URL 2>/wget.log
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Started wget updatefiles at $now"
+wget  -r -nd -c -A xml.gz $UPDATE_URL 2>/wget.log
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Finished wget updatefiles at $now"
+
 cat /wget.log > /dev/stdout
 
 num_of_newfiles=`egrep "' saved \[[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
@@ -54,21 +69,22 @@ if [ $num_of_newfiles -eq 0 ] && [ $FORCE_CONVERT -eq 0 ]; then
   exit 0
 fi
 
+
 cd / 
 
-# baselineの重複したPMID一覧存在しない場合は変換しない
-if [ -f $WORK/dup_pmids.tsv ]; then
-  # 削除されたPMIDのリスト作成
-  ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P5 -n1 -IFILE ruby pubmed_delete_citation.rb FILE skip_pmids.txt
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Started convert in $NUM_PARALLEL parallels at $now"
 
-  # 変換の実行(updatefile)
-  ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
-  # 変換の実行(baseline 5並列)
-  ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P5 -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmids.tsv
+# 削除されたPMIDのリスト作成
+ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby pubmed_delete_citation.rb FILE skip_pmids.txt
 
-  chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl)
-else
-  echo "Run with -i option" 
-  exit 1 
-fi
+# 変換の実行(updatefile)
+ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
+# 変換の実行(baseline)
+ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmids.tsv
+
+chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl)
+
+now=`date "+%Y%m%d-%H%M%S"`
+echo "Finished convert at $now"
 

@@ -2,7 +2,6 @@
 require 'set'
 require 'zlib'
 require 'erb'
-require 'benchmark'
 require 'objspace'
 require 'nokogiri'
 
@@ -248,8 +247,14 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
      
   rn, nm = [], []
   doc.xpath(rn_list_path).each do |elm|
-    rn.push(elm.xpath('RegistryNumber').text) if check_element(elm.xpath('RegistryNumber'))
+    rn.push(elm.xpath('RegistryNumber').text) if (check_element(elm.xpath('RegistryNumber')) && !elm.xpath('RegistryNumber').text.eql?("0") )
     nm.push(elm.xpath('NameOfSubstance').text) if check_element(elm.xpath('NameOfSubstance'))
+  end
+
+  mh = []
+  doc.xpath(mh_list_path).each do |elm|
+    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
+    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
   end
    
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""

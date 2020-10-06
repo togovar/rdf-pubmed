@@ -1,4 +1,5 @@
 
+require 'set'
 require 'zlib'
 require 'erb'
 require 'benchmark'
@@ -118,15 +119,17 @@ end
 
 # 第一引数:入力ファイル 第二引数:出力しないPMIDのリストファイル
 input = ARGV[0]
-#skip_pmids_file = ARGV[1] 
+skip_pmids_file = ARGV[1] 
 
 output = "/data/#{File.basename(input, '.xml.gz')}.ttl"
 
 # 出力対象外のPMIDのリストを取得
-#skip_pmids = []
-#File.foreach(skip_pmids_file){ |line|
-#  skip_pmids.push(line.chomp)
-#}
+skip_pmids = []
+skip_tmp_pmids = []
+File.foreach(skip_pmids_file){ |line|
+  skip_pmids.push(line.chomp)
+}
+skip_pmids = skip_pmids.to_set
 
 # 出力先ファイルが存在する場合出力しない
 #if File.exist?(output) then
@@ -142,17 +145,16 @@ File.open(output, 'a'){|f|
 # ファイルごとに出力を行う
 gz = Zlib::GzipReader.new(File.open(input))  
 docx = Nokogiri::XML(gz.read)
-erb = ERB.new(IO.read("/test/pubmed_converter.erb"),nil, "%" )
-created_pmid_list = []
+erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
 # 各値の取得
 docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     
   pmid = doc.xpath(pmid_path).text
     
-  # 作成対象外のエントリーの場合は作成しない
-  #next if skip_pmids.include?(pmid)
+  # 作成対象外またはこのファイルで作成したエントリーの場合は作成しない
+  next if (skip_pmids.include?(pmid) or skip_tmp_pmids.include?(pmid))
   
-  created_pmid_list.push(pmid)
+  skip_tmp_pmids.push(pmid)
   ab = check_element(doc.xpath(ab_path)) ? doc.xpath(ab_path).text : ""
   ci = check_element(doc.xpath(ci_path)) ? doc.xpath(ci_path).text : ""
   aid_pii = check_element(doc.xpath(aid_pii_path)) ? doc.xpath(aid_pii_path).text : ""
@@ -241,21 +243,15 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
       pg_so = doc.xpath(pg_path).text
     end      
   end
-   
+    
   pl = check_element(doc.xpath(pl_path)) ? doc.xpath(pl_path).text : ""
-  
+     
   rn, nm = [], []
   doc.xpath(rn_list_path).each do |elm|
-    rn.push(elm.xpath('RegistryNumber').text) if (check_element(elm.xpath('RegistryNumber')) && !elm.xpath('RegistryNumber').text.eql?("0") )
+    rn.push(elm.xpath('RegistryNumber').text) if check_element(elm.xpath('RegistryNumber'))
     nm.push(elm.xpath('NameOfSubstance').text) if check_element(elm.xpath('NameOfSubstance'))
   end
-  
-  mh = []
-  doc.xpath(mh_list_path).each do |elm|
-    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
-    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
-  end
-  
+   
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
   vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""
   so = "#{ta}. #{dp};#{vi}(#{ip}):#{pg_so}."
@@ -266,5 +262,9 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   end
 end
 
-
-
+# ファイル作成したPMID一覧を出力
+File.open(skip_pmids_file, 'a'){|file|
+  skip_tmp_pmids.each{|created_pmid|
+    file.puts created_pmid
+  }
+}

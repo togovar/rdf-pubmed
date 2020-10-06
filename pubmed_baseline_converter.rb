@@ -3,7 +3,6 @@ require 'set'
 require 'csv'
 require 'zlib'
 require 'erb'
-require 'benchmark'
 require 'objspace'
 require 'nokogiri'
 
@@ -123,6 +122,7 @@ input = ARGV[0]
 skip_pmids_file = ARGV[1] 
 dup_pmids_file = ARGV[2]
 
+# 出力ファイル名の設定
 output = "/data/#{File.basename(input, '.xml.gz')}.ttl"
 
 # 出力対象外のPMIDのリストを取得
@@ -256,10 +256,16 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
      
   rn, nm = [], []
   doc.xpath(rn_list_path).each do |elm|
-    rn.push(elm.xpath('RegistryNumber').text) if check_element(elm.xpath('RegistryNumber'))
+    rn.push(elm.xpath('RegistryNumber').text) if (check_element(elm.xpath('RegistryNumber')) && !elm.xpath('RegistryNumber').text.eql?("0") )
     nm.push(elm.xpath('NameOfSubstance').text) if check_element(elm.xpath('NameOfSubstance'))
   end
-   
+  
+  mh = []
+  doc.xpath(mh_list_path).each do |elm|
+    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
+    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
+  end
+  
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
   vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""
   so = "#{ta}. #{dp};#{vi}(#{ip}):#{pg_so}."

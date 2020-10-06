@@ -80,6 +80,9 @@ pubmed:<%= pmid %>
 <% nm.each do |elm| %>
   rdfs:seeAlso "<%=c elm %>";
 <%end%>
+<% mh.each do |elm| %>
+  rdfs:seeAlso http://id.nlm.nih.gov/mesh/<%=c elm %>;
+<%end%>
 <% if check(so) %>  dcterms:source "<%=c so %>";<% end %>
 <% if check(ti) %>  dcterms:title "<%=c ti %>";<% end %>
 <% if check(vi) %>  bibo:volume "<%=c vi %>" <% end %>.

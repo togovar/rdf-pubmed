@@ -252,8 +252,16 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   
   mh = []
   doc.xpath(mh_list_path).each do |elm|
-    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
-    mh.push(elm.xpath('DescriptorName').attribute('UI').text) if check_element(elm.xpath('DescriptorName'))
+    if check_element(elm.xpath('DescriptorName')) then
+      elm.xpath('DescriptorName').each do |desc|
+        mh.push(desc.attribute('UI').text)
+      end
+    end
+    if check_element(elm.xpath('QualifierName')) then
+      elm.xpath('QualifierName').each do |qual|
+        mh.push(qual.attribute('UI').text)
+      end
+    end
   end
   
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""

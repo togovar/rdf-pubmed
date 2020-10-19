@@ -63,7 +63,7 @@ dup_info.each do |pmid, lr|
 end
 
 # ファイルに出力
-File.open("/work/dup_pmid.tsv", 'a'){|file|
+File.open("/work/dup_pmids.tsv", 'a'){|file|
   result.each{|pmid, lr|
     file.puts pmid + "\t" + lr
   }

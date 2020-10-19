@@ -37,7 +37,7 @@ now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished wget baseline at $now"
 
 cat /baseline_wget.log
-baseline_num_of_newfiles=`egrep "' saved \[[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
+baseline_num_of_newfiles=`egrep " saved \[+[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
   
 # baselineに更新がある場合、または出力ファイルが存在しない場合に重複したPMID一覧を出力する
 if [ ! $baseline_num_of_newfiles -eq 0 ] && [ ! -e /work/dup_pmid.tsv ]; then
@@ -60,7 +60,7 @@ echo "Finished wget updatefiles at $now"
 
 cat /wget.log > /dev/stdout
 
-num_of_newfiles=`egrep "' saved \[[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
+num_of_newfiles=`egrep "saved \[+[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
 
 # アーカイブファイルに更新がなく、fオプションが指定されていない場合はコンバートを実行しない
 if [ $num_of_newfiles -eq 0 ] && [ $FORCE_CONVERT -eq 0 ]; then
@@ -81,7 +81,7 @@ ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby
 # 変換の実行(updatefile)
 ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
 # 変換の実行(baseline)
-ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmids.tsv
+ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmid.tsv
 
 chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl)
 

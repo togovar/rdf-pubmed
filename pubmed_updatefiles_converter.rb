@@ -51,6 +51,8 @@ pmid_path = "MedlineCitation/PMID"
 rn_list_path = "MedlineCitation/ChemicalList/Chemical"
 ti_path = "MedlineCitation/Article/ArticleTitle"
 vi_path = "MedlineCitation/Article/Journal/JournalIssue/Volume"
+su_list_path = "MedlineCitation/SupplMeshList/SupplMeshName"
+puty_list_path = "MedlineCitation/Article/PublicationTypeList/PublicationType"
 
 prefix = [ 
   ": <http://purl.jp/bio/10/pubmed-ontology/> .",
@@ -66,7 +68,7 @@ prefix = [
   "prism: <http://prismstandard.org/namespeces/1.2/basic/> .",
   "olo: <http://purl.org/ontology/olo/core#> .",
   "pav: <http://purl.org/pav/>.",
-  "medline: <http:purl.jp/bio/10/pubmed/>. ",
+  "medline: <http://purl.jp/bio/10/pubmed/>. ",
   "mesh: <http://id.nlm.nih.gov/mesh/>. ",
   "xsd: <http://www.w3.org/2001/XMLSchema#>"
 ]
@@ -245,14 +247,25 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   end
     
   pl = check_element(doc.xpath(pl_path)) ? doc.xpath(pl_path).text : ""
-     
-  rn, nm = [], []
-  doc.xpath(rn_list_path).each do |elm|
-    rn.push(elm.xpath('RegistryNumber').text) if (check_element(elm.xpath('RegistryNumber')) && !elm.xpath('RegistryNumber').text.eql?("0") )
-    nm.push(elm.xpath('NameOfSubstance').text) if check_element(elm.xpath('NameOfSubstance'))
+   
+  mh = []
+  
+  if check_element(doc.xpath(puty_list_path))then
+    doc.xpath(puty_list_path).each do |elm|
+      mh.push(elm.attribute('UI').text)
+    end
   end
 
-  mh = []
+  doc.xpath(rn_list_path).each do |elm|
+    mh.push(elm.xpath('NameOfSubstance').attribute('UI').text) if check_element(elm.xpath('NameOfSubstance'))
+  end
+
+  if check_element(doc.xpath(su_list_path))then
+    doc.xpath(su_list_path).each do |elm|
+      mh.push(elm.attribute('UI').text)
+    end
+  end
+
   doc.xpath(mh_list_path).each do |elm|
     if check_element(elm.xpath('DescriptorName')) then
       elm.xpath('DescriptorName').each do |desc|

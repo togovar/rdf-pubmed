@@ -74,12 +74,6 @@ pubmed:<%= pmid %>
 <% if check(pg_st) %>  prism:startingPage "<%=c pg_st %>";<% end %>
 <% if check(pg_en) %>  prism:endingPage "<%=c pg_en %>";<% end %>
 <% if check(pl) %>  fabio:hasPlaceOfPublication "<%=c pl %>";<% end %>
-<% rn.each do |elm| %>
-  rdfs:seeAlso "<%=c elm %>";
-<%end%>
-<% nm.each do |elm| %>
-  rdfs:seeAlso "<%=c elm %>";
-<%end%>
 <% mh.each do |elm| %>
   rdfs:seeAlso mesh:<%=c elm %>;
 <%end%>

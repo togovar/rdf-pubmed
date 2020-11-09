@@ -277,6 +277,7 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
       end
     end
   end
+  mh.uniq!
   
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
   vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""

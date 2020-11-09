@@ -83,7 +83,7 @@ ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_upda
 # 変換の実行(baseline)
 ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmid.tsv
 
-chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl)
+chmod -R 777 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 777 $(ls -d $DATA/pubmed*.ttl)
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished convert at $now"

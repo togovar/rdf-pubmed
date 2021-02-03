@@ -7,8 +7,8 @@
 # プロパティ
 WORK=/work
 DATA=/data
-BASE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/baseline
-UPDATE_URL=ftp://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles
+BASE_URL=https://ftp.ncbi.nlm.nih.gov/pubmed/baseline
+UPDATE_URL=https://ftp.ncbi.nlm.nih.gov/pubmed/updatefiles
 FORCE_CONVERT=0
 NUM_PARALLEL=1
 
@@ -32,15 +32,15 @@ cd $WORK/baseline
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Started wget baseline at $now"
-wget  -r -nd -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+wget --execute robots=off -r -l 1 -nd -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished wget baseline at $now"
 
 cat /baseline_wget.log
-baseline_num_of_newfiles=`egrep " saved \[+[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
+baseline_num_of_newfiles=`egrep " saved \[+[0-9]+/+[0-9]+\]" /baseline_wget.log | grep -v "'.listing' saved" | wc -l `
   
 # baselineに更新がある場合、または出力ファイルが存在しない場合に重複したPMID一覧を出力する
-if [ ! $baseline_num_of_newfiles -eq 0 ] && [ ! -e /work/dup_pmid.tsv ]; then
+if [ $baseline_num_of_newfiles -gt 1 ] || [ ! -e /work/dup_pmid.tsv ]; then
   test -e /work/dup_pmid.tsv && rm /work/dup_pmid.tsv
   # baseline内の重複したPMIDを抜きだし、最新の更新日の値とペアで出力する
   ruby /pubmed_dup_check.rb
@@ -54,16 +54,16 @@ cd $WORK/updatefiles
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Started wget updatefiles at $now"
-wget  -r -nd -c -A xml.gz $UPDATE_URL 2>/wget.log
+wget  --execute robots=off -r -l 1 -nd -c -N -A xml.gz $UPDATE_URL 2>/wget.log
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished wget updatefiles at $now"
 
 cat /wget.log > /dev/stdout
 
-num_of_newfiles=`egrep "saved \[+[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
+num_of_newfiles=`egrep "saved \[+[0-9]+/+[0-9]+\]" /wget.log | grep -v "'.listing' saved" | wc -l `
 
 # アーカイブファイルに更新がなく、fオプションが指定されていない場合はコンバートを実行しない
-if [ $num_of_newfiles -eq 0 ] && [ $FORCE_CONVERT -eq 0 ]; then
+if [ $num_of_newfiles -le 1 ] && [ $FORCE_CONVERT -eq 0 ]; then
   echo
   echo "No RDF files were generated because no new files were found at the download site."
   exit 0

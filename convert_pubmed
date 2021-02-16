@@ -32,7 +32,7 @@ cd $WORK/baseline
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Started wget baseline at $now"
-wget --execute robots=off -r -l 1 -nd -c -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+wget --execute robots=off -r -l 1 -nd -N -A xml.gz $BASE_URL 2> /baseline_wget.log
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished wget baseline at $now"
 
@@ -54,7 +54,7 @@ cd $WORK/updatefiles
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Started wget updatefiles at $now"
-wget  --execute robots=off -r -l 1 -nd -c -N -A xml.gz $UPDATE_URL 2>/wget.log
+wget  --execute robots=off -r -l 1 -nd -N -A xml.gz $UPDATE_URL 2>/wget.log
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished wget updatefiles at $now"
 

@@ -77,6 +77,12 @@ pubmed:<%= pmid %>
 <% mh.each do |elm| %>
   rdfs:seeAlso mesh:<%=c elm %>;
 <%end%>
+<% if mh_pt.size != 0%><% mh_pt.each do |elm| %>
+  fabio:hasPrimarySubjectTerm mesh:<%=c elm %>;
+<% end %><% end %>
+<% if mh_st.size != 0%><% mh_st.each do |elm| %>
+  fabio:hasSubjectTerm mesh:<%=c elm %>;
+<% end %><% end %>
 <% if check(so) %>  dcterms:source "<%=c so %>";<% end %>
 <% if check(ti) %>  dcterms:title "<%=c ti %>";<% end %>
 <% if check(vi) %>  bibo:volume "<%=c vi %>" <% end %>.

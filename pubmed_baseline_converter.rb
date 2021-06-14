@@ -76,7 +76,7 @@ prefix = [
 
 # 2桁の0埋め
 def zero_padding(num)
-  num.to_s.length==2 ? num : ("0"<<num) 
+  num.to_s.length==2 ? num : ("0" << num ) 
 end 
 
 # XPathの存在チェック
@@ -258,7 +258,8 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   pl = check_element(doc.xpath(pl_path)) ? doc.xpath(pl_path).text : ""
   
   mh = []
-  
+  mh_pt = []
+  mh_st = []
   if check_element(doc.xpath(puty_list_path))then
     doc.xpath(puty_list_path).each do |elm|
       mh.push(elm.attribute('UI').text)
@@ -279,12 +280,20 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   doc.xpath(mh_list_path).each do |elm|
     if check_element(elm.xpath('DescriptorName')) then
       elm.xpath('DescriptorName').each do |desc|
-        mh.push(desc.attribute('UI').text)
+        if desc.attribute('MajorTopicYN').text == "Y" then
+          mh_pt.push(desc.attribute('UI').text)
+        else
+          mh_st.push(desc.attribute('UI').text)
+        end
       end
     end
-    if check_element(elm.xpath('QualifierName')) then
-      elm.xpath('QualifierName').each do |qual|
-        mh.push(qual.attribute('UI').text)
+      if check_element(elm.xpath('QualifierName')) then
+        elm.xpath('QualifierName').each do |qual|
+        if qual.attribute('MajorTopicYN').text == "Y" then
+          mh_pt.push(qual.attribute('UI').text)
+        else
+          mh_st.push(qual.attribute('UI').text)
+        end
       end
     end
   end

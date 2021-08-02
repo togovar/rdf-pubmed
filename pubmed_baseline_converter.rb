@@ -278,26 +278,31 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
   end
   
   doc.xpath(mh_list_path).each do |elm|
+    mh_str = ""
+    major = 0
     if check_element(elm.xpath('DescriptorName')) then
       elm.xpath('DescriptorName').each do |desc|
+        mh_str.concat(desc.attribute('UI').text)
         if desc.attribute('MajorTopicYN').text == "Y" then
-          mh_pt.push(desc.attribute('UI').text)
-        else
-          mh_st.push(desc.attribute('UI').text)
+          major = 1
         end
       end
     end
-      if check_element(elm.xpath('QualifierName')) then
-        elm.xpath('QualifierName').each do |qual|
+    if check_element(elm.xpath('QualifierName')) then
+      elm.xpath('QualifierName').each do |qual|
+        mh_str.concat(desc.attribute('UI').text)
         if qual.attribute('MajorTopicYN').text == "Y" then
-          mh_pt.push(qual.attribute('UI').text)
-        else
-          mh_st.push(qual.attribute('UI').text)
+          major = 1
         end
       end
+    end
+    if major == 1 then
+      mh_pt.push(mh_str)
+    else
+      mh_st.push(mh_str)
     end
   end
-  mh.uniq!
+  
 
   ti = check_element(doc.xpath(ti_path)) ? doc.xpath(ti_path).text : ""
   vi = check_element(doc.xpath(vi_path)) ? doc.xpath(vi_path).text : ""

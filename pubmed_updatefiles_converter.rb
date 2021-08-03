@@ -281,7 +281,7 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     end
     if check_element(elm.xpath('QualifierName')) then
       elm.xpath('QualifierName').each do |qual|
-        mh_str.concat(desc.attribute('UI').text)
+        mh_str.concat(qual.attribute('UI').text)
         if qual.attribute('MajorTopicYN').text == "Y" then
           major = 1
         end

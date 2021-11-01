@@ -76,12 +76,12 @@ now=`date "+%Y%m%d-%H%M%S"`
 echo "Started convert in $NUM_PARALLEL parallels at $now"
 
 # 削除されたPMIDのリスト作成
-ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby pubmed_delete_citation.rb FILE skip_pmids.txt
+ls -d $WORK/updatefiles/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -IFILE ruby pubmed_delete_citation.rb FILE skip_pmids.txt
 
 # 変換の実行(updatefile)
-ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -n1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
+ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -IFILE ruby /pubmed_updatefiles_converter.rb FILE skip_pmids.txt
 # 変換の実行(baseline)
-ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -n1 -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmid.tsv
+ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmid.tsv
 
 chmod -R 777 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 777 $(ls -d $DATA/pubmed*.ttl)
 

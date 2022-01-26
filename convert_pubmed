@@ -48,11 +48,17 @@ baseline_num_of_newfiles=`egrep " saved \[+[0-9]+/+[0-9]+\]" /baseline_wget.log 
 # 初回実行ではなく、baselineに更新がある場合前回ファイルを削除する
 if [ $FIRST_RUN -eq 0  ] && [ $baseline_num_of_newfiles -gt 1 ]; then
   echo "baslineに更新があった為、前回ファイルを削除" 
-  # 前回ファイルの西暦下二桁を取得(例:pubmed20n0001.xml.gz なら20)
-  yy=`ls | head -n1 | sed -e "s/pubmed//g" -e "s/n[0-9]*.xml.gz//g"`
-  # baselineの前回ファイルとupdatefilesを削除
-  rm -f pubmed${yy}n*.xml.gz 
-  rm -rf ${WORK}/updatefiles  
+  # baselineとupdatefilesを削除
+  rm -rf ${WORK}/baseline
+  rm -rf ${WORK}/updatefiles
+  
+  # baselineをダウンロードしなおす
+  mkdir -p $WORK/baseline
+  now=`date "+%Y%m%d-%H%M%S"`
+  echo "Started wget baseline at $now"
+  wget --execute robots=off -r -l 1 -nd -N -A xml.gz $BASE_URL 2> /baseline_wget.log
+  now=`date "+%Y%m%d-%H%M%S"`
+  echo "Finished wget baseline at $now"
 fi
 
 # baselineに更新がある場合、または出力ファイルが存在しない場合に重複したPMID一覧を出力する

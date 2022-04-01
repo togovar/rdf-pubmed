@@ -147,7 +147,7 @@ File.open(output, 'a'){|f|
 # ファイルごとに出力を行う
 gz = Zlib::GzipReader.new(File.open(input))  
 docx = Nokogiri::XML(gz.read)
-erb = ERB.new(IO.read("/pubmed_converter.erb"),nil, "%" )
+erb = ERB.new(IO.read("/pubmed_converter.erb"),trim_mode:"%" )
 # 各値の取得
 docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     

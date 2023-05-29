@@ -70,7 +70,7 @@ prefix = [
   "pav: <http://purl.org/pav/>.",
   "medline: <http://purl.jp/bio/10/pubmed/>. ",
   "mesh: <http://id.nlm.nih.gov/mesh/>. ",
-  "xsd: <http://www.w3.org/2001/XMLSchema#>"
+  "xsd: <http://www.w3.org/2001/XMLSchema#>."
 ]
 
 # 2桁の0埋め

@@ -69,7 +69,7 @@ prefix = [
   "olo: <http://purl.org/ontology/olo/core#> .",
   "pav: <http://purl.org/pav/>.",
   "medline: <http://purl.jp/bio/10/pubmed/>. ",
-  "xsd: <http://www.w3.org/2001/XMLSchema#>"
+  "xsd: <http://www.w3.org/2001/XMLSchema#>."
 ]
 
 # 2桁の0埋め
@@ -302,6 +302,3 @@ docx.xpath('/PubmedArticleSet/PubmedArticle').each do |doc|
     f.puts erb.result(binding).gsub(/\n(\s| )*\n/, "\n")
   end
 end
-
-
-

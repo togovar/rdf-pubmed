@@ -107,7 +107,12 @@ ls -rd $WORK/updatefiles/pubmed*.xml.gz | xargs -P1 -IFILE ruby /pubmed_updatefi
 # 変換の実行(baseline)
 ls -rd $WORK/baseline/pubmed*.xml.gz | xargs -P${NUM_PARALLEL} -IFILE ruby /pubmed_baseline_converter.rb FILE skip_pmids.txt $WORK/dup_pmid.tsv
 
-chmod -R 777 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 777 $(ls -d $DATA/pubmed*.ttl)
+# turtle fileを圧縮する
+for turtle in `ls -1 $DATA/pubmed*.ttl` ; do
+  echo "gzip $turtle"
+  gzip $turtle
+done
+chmod -R 666 $(ls -d $WORK/**/pubmed*.xml.gz) && chmod -R 666 $(ls -d $DATA/pubmed*.ttl.gz)
 
 now=`date "+%Y%m%d-%H%M%S"`
 echo "Finished convert at $now"

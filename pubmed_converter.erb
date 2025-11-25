@@ -8,6 +8,7 @@ def c(str)
 end
 
 def check(str)
+  str = str.match?(/\A[\s\u3000]*\z/) ? "" : str
   if (str && !str.empty?) then
     true
   else

@@ -3,7 +3,7 @@ def c(str)
   if str.nil?
     ""
   else
-    str.chomp.gsub(/\n/, ' ').gsub(/\"/, ' ').gsub(/\\/, '')
+    str.chomp.gsub(/\n/, ' ').gsub(/\"/, ' ').gsub(/\\/, '').gsub(/\r/, ' ')
   end
 end
 

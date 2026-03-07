@@ -137,7 +137,7 @@ skip_pmids = skip_pmids.to_set
 
 # 重複したPMIDと更新日のリストを取得
 dup_pmids_info = CSV.read(dup_pmids_file, col_sep: "\t")
-dup_pmids = dup_pmids_info.transpose[0]
+dup_pmids = (dup_pmids_info || []).map { |row| row[0] }.compact
 
 # 出力先ファイルが存在する場合出力しない
 #if File.exist?(output) then
